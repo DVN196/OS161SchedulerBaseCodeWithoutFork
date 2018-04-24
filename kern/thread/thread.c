@@ -54,7 +54,6 @@
 #include <vnode.h>
 #include <pid.h>
 
-
 /* Magic number used as a guard value on kernel thread stacks. */
 #define THREAD_STACK_MAGIC 0xbaadf00d
 
@@ -841,11 +840,25 @@ thread_timeryield(void)
  * the current CPU's run queue by job priority.
  * You have to write this. If you do nothing, thread will run in round-robin fashion.
  */
+int mod_number = 3;
 
 void
 schedule(void)
 {
 	// decide what should be the next thread based on some criteria
+    if (threadlist_isempty(&curcpu->c_runqueue)) {
+        return;
+    }
+    struct threadlistnode * walker = curcpu->c_runqueue.tl_head.tln_next;
+    while (walker->tln_self != NULL) {
+        if (mod_number % 4 == 0) {
+            threadlist_remove(&curcpu->c_runqueue, walker->tln_self);
+            threadlist_addhead(&curcpu->c_runqueue, walker->tln_self);
+            mod_number = 0;
+            return;
+        }
+        mod_number++;
+    }
 
 	// reshuffle the current CPU's run queue curcpu->c_runqueue
 	// NOTE: you have to protect runqueue from race conditions while modifying it!
